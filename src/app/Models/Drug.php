@@ -82,17 +82,7 @@ class Drug extends Model
     public function hasAllBut(Array $substances, $exceptionsNumber = 0)
     {
         if (count(array_diff($substances, $this->substances_ids)) == $exceptionsNumber) 
-            return false;
-        else return true;
+            return true;
+        else return false;
     }
-
-    /**
-     * number of matched substances in the given drug
-     * 
-     * @return Integer
-     */
-    public function matched($substances)
-    {
-        return count(array_intersect($substances, $this->substances->pluck('id')->all()));
-    } 
 }

@@ -86,27 +86,22 @@ class SearchDrugsController extends Controller
         }
 
         /**
-         * get drugs with 5, 4, 3 and 2 nonexact matches
-         */
-        $partialMatches = collect([]);
-        for ($except = $count - 2; $except >= 0; $except--) {
-            $partialMatches = $partialMatches->merge(
-                $visibleDrugs->filter(
-                    function($drug) use ($substances, $except) {
-                        return $drug->hasAllBut($substances, $except);
-                    }
-                )
-            );
-        }
-
-        /**
+         * get drugs with 5, 4, 3 and 2 nonexact matches,
          * add number of matched substances to every drug 
          */
-        $partialMatches->transform(function($drug) use ($substances) {
-            $drug->append('isset_substances');
-            $drug->isset_substances = $drug->matched($substances);
-            return $drug;
-        });
+        $partialMatches = collect([]);
+        for ($present = $count; $present >= 2; $present--) {
+            $except = $count - $present;
+            $nextPart = $visibleDrugs->filter(function($drug) use ($substances, $except) {
+                return $drug->hasAllBut($substances, $except);
+            });
+            $nextPart->transform(function($drug) use ($present) {
+                $drug->append('isset_substances');
+                $drug->isset_substances = $present;
+                return $drug;
+            });
+            $partialMatches = $partialMatches->merge($nextPart);
+        }
 
         /**
          * give this partially matched answer if exist

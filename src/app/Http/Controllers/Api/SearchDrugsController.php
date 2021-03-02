@@ -90,7 +90,10 @@ class SearchDrugsController extends Controller
          * add number of matched substances to every drug 
          */
         $partialMatches = collect([]);
-        for ($present = $count; $present >= 2; $present--) {
+        for ($present = $count; 
+            $present >= 2 && count($partialMatches) <= $page*$perPage; 
+            $present--
+        ) {
             $except = $count - $present;
             $nextPart = $visibleDrugs->filter(function($drug) use ($substances, $except) {
                 return $drug->hasAllBut($substances, $except);

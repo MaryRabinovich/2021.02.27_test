@@ -59,9 +59,13 @@ class SearchDrugsController extends Controller
         }
 
         /**
-         * get all visible drugs
+         * get all visible drugs matching at least one substance
          */
-        $visibleDrugs = Drug::visible()->with('substances')->get();
+        $visibleDrugs = Drug::visible()
+            ->whereHas('substances', function($query) use ($substances) {
+                $query->whereIn('id', $substances);
+            })
+            ->with('substances')->get();
 
         /**
          * check for exact matches

@@ -61,18 +61,16 @@ class SearchDrugsController extends Controller
         /**
          * get all visible drugs matching at least one substance
          */
-        $visibleDrugsWithOneMatchAtLeast = Drug::visible()
-            ->whereHas('substances', function($query) use ($substances) {
-                $query->whereIn('id', $substances);
-            })
+        $visibleDrugsWithOneMatchAtLeast = Drug::visible()->hasAtLeastOne($substances)
             ->with('substances')->get();
 
         /**
          * check for exact matches
          */
         $exactMatches = $visibleDrugsWithOneMatchAtLeast
-            ->filter(function($drug) use ($substances) { return $drug->hasOnly($substances);})
-            ->filter(function($drug) use ($substances) { return $drug->hasAll($substances); });
+            ->filter(function($drug) use ($substances) { 
+                return $drug->hasAll($substances) && $drug->hasOnly($substances);
+            });
 
         /**
          * if exact matches exist give exact answer

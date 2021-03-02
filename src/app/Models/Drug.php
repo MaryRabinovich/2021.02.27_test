@@ -27,6 +27,17 @@ class Drug extends Model
     {
         return $this->belongsToMany(Substance::class);
     }
+    
+    /**
+     * array of substanceIDs for the given drug,
+     * used inside other functions of the model 'Drug'
+     * 
+     * @return Array
+     */
+    public function getSubstancesIdsAttribute()
+    {
+        return $this->substances->pluck('id')->all();
+    }
 
     /**
      * Drugs containing only visible substances
@@ -39,16 +50,17 @@ class Drug extends Model
             $query->where('visible', false);
         });
     }
-    
+
     /**
-     * array of substanceIDs for the given drug,
-     * used inside other functions of the model 'Drug'
+     * Drugs containing at least one choosen substance
      * 
-     * @return Array
+     * @return \Illuminate\Database\Eloquent\Builder
      */
-    public function getSubstancesIdsAttribute()
+    public function scopeHasAtLeastOne(Builder $query, Array $substances)
     {
-        return $this->substances->pluck('id')->all();
+        $query->whereHas('substances', function($query) use ($substances) {
+            $query->whereIn('id', $substances);
+        });
     }
 
     /**
@@ -72,7 +84,7 @@ class Drug extends Model
         if (count(array_diff($substances, $this->substances_ids))) return false;
         else return true;
     }
-    
+
     /**
      * does a drug contain almost all given substances,
      * with given number of exceptions

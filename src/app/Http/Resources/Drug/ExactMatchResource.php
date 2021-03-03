@@ -5,7 +5,7 @@ namespace App\Http\Resources\Drug;
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Http\Resources\SubstanceResource;
 
-class TotalMatchResource extends JsonResource
+class ExactMatchResource extends JsonResource
 {
     /**
      * Transform the resource into an array.

@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Drug;
 use App\Models\Substance;
 use Illuminate\Http\Request;
-use App\Http\Resources\Drug\TotalMatchResource;
+use App\Http\Resources\Drug\ExactMatchResource;
 use App\Http\Resources\Drug\PartialMatchResource;
 
 class SearchDrugsController extends Controller
@@ -18,7 +18,7 @@ class SearchDrugsController extends Controller
         /** 
          * get start data
          */ 
-        $page = isset($request->page) ? $request->page : false;
+        $page = isset($request->page) ? (int) $request->page : false;
         $substancesInput = isset($request->substances) ? $request->substances : [];
 
         /**
@@ -42,7 +42,7 @@ class SearchDrugsController extends Controller
         $substances = [];
         foreach ($substancesInput as $substance) {
             if (Substance::find($substance)->visible)
-                array_push($substances, $substance);
+                array_push($substances, (int) $substance);
         }
         $count = count($substances);
 
@@ -81,7 +81,7 @@ class SearchDrugsController extends Controller
                 'per_page' => $perPage,
                 'total' => $exactMatchesTotal,
                 'current_page' => $page,
-                'data' => TotalMatchResource::collection(
+                'data' => ExactMatchResource::collection(
                     $exactMatches->chunk($perPage)->all()[$page - 1]
                 )
             ]);

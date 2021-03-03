@@ -11,30 +11,26 @@ use App\Http\Resources\Drug\PartialMatchResource;
 
 class SearchDrugsController extends Controller
 {
+    protected $page, $perPage;
+
+    public function __construct()
+    {
+        $this->perPage = 5;
+    }
+
     public function search(Request $request)
     {
-        $perPage = 5;
-
         /** 
          * get start data
          */ 
         $page = isset($request->page) ? (int) $request->page : false;
+        $this->page = $page;
         $substancesInput = isset($request->substances) ? $request->substances : [];
 
         /**
-         * simple answer when start data is unsufficient
+         * simple answer when start data is insufficient
          */
-        if (count($substancesInput) < 2) {
-            return response()->json(
-                [
-                    'errors'         => [
-                        'substances' => [
-                            'не ленись, добавь веществ'
-                        ]
-                    ]
-                ]
-            );
-        }
+        if (count($substancesInput) < 2) return $this->inputInsufficientJson();
 
         /**
          * clean start data, left only visible substancesIDs
@@ -49,14 +45,7 @@ class SearchDrugsController extends Controller
         /**
          * simple answer if only 0 or 1 substances left
          */
-        if ($count < 2) {
-            return response()->json([
-                'current_page' => 1,
-                'total'        => 0,
-                'per_page'     => $perPage,
-                'data'         => []
-            ]);
-        }
+        if ($count < 2) return $this->visibleInputInsufficientJson();
 
         /**
          * get all visible drugs matching at least one substance
@@ -66,36 +55,21 @@ class SearchDrugsController extends Controller
 
         /**
          * check for exact matches
+         * give exact answer if exists
          */
         $exactMatches = $visibleDrugsWithOneMatchAtLeast
             ->filter(function($drug) use ($substances) { 
                 return $drug->hasAll($substances) && $drug->hasOnly($substances);
             });
-
-        /**
-         * if exact matches exist give exact answer
-         */
-        $exactMatchesTotal = $exactMatches->count();
-        if ($exactMatchesTotal) {
-            return response()->json([
-                'per_page' => $perPage,
-                'total' => $exactMatchesTotal,
-                'current_page' => $page,
-                'data' => ExactMatchResource::collection(
-                    $exactMatches->chunk($perPage)->all()[$page - 1]
-                )
-            ]);
-        }
+        if ($exactMatches->count()) return $this->exactMatchesJson($exactMatches);
 
         /**
          * get drugs with 5, 4, 3 and 2 nonexact matches,
          * add number of matched substances to every drug 
+         * give partially matched answer if exists
          */
         $partialMatches = collect([]);
-        for ($present = $count; 
-            $present >= 2 && count($partialMatches) <= $page*$perPage; 
-            $present--
-        ) {
+        for ($present = $count; $present >= 2 && count($partialMatches) <= $page*$this->perPage; $present--) {
             $except = $count - $present;
             $nextPart = $visibleDrugsWithOneMatchAtLeast
                 ->filter(function($drug) use ($substances, $except) {
@@ -108,22 +82,60 @@ class SearchDrugsController extends Controller
             });
             $partialMatches = $partialMatches->merge($nextPart);
         }
+        if ($partialMatches->count()) return $this->partialMatchesJson($partialMatches);
 
         /**
-         * give this partially matched answer if exist
+         * simple answer for unchecked cases
          */
-        $partialMatchesTotal = $partialMatches->count();
-        if ($partialMatchesTotal) {
-            return response()->json([
-                'per_page' => $perPage,
-                'total' => $partialMatchesTotal,
-                'current_page' => $page,
-                'data' => PartialMatchResource::collection(
-                    $partialMatches->chunk($perPage)->all()[$page - 1]
-                )
-            ]);
-        }
-        
-        return [];
+        return response()->json([]);
+    }
+
+
+
+    /**
+     * formatted answers
+     */
+    public function inputInsufficientJson()
+    {
+        return response()->json(
+            [
+                'errors'         => [
+                    'substances' => [
+                        'не ленись, добавь веществ'
+                    ]
+                ]
+            ]
+        );
+    }
+    public function visibleInputInsufficientJson()
+    {
+        return response()->json([
+            'current_page' => 1,
+            'total'        => 0,
+            'per_page'     => $this->perPage,
+            'data'         => []
+        ]);
+    }
+    public function exactMatchesJson($collection)
+    {
+        return response()->json([
+            'per_page' => $this->perPage,
+            'total' => $collection->count(),
+            'current_page' => $this->page,
+            'data' => ExactMatchResource::collection(
+                $collection->chunk($this->perPage)->all()[$this->page - 1]
+            )
+        ]);
+    }
+    public function partialMatchesJson($collection)
+    {
+        return response()->json([
+            'per_page' => $this->perPage,
+            'total' => $collection->count(),
+            'current_page' => $this->page,
+            'data' => PartialMatchResource::collection(
+                $collection->chunk($this->perPage)->all()[$this->page - 1]
+            )
+        ]);
     }
 }

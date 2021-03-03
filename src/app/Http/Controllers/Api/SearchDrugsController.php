@@ -23,29 +23,24 @@ class SearchDrugsController extends Controller
         /** 
          * get start data
          */ 
-        $page = isset($request->page) ? (int) $request->page : false;
-        $this->page = $page;
+        $this->page = isset($request->page) ? (int) $request->page : 1;
         $substancesInput = isset($request->substances) ? $request->substances : [];
 
         /**
-         * simple answer when start data is insufficient
+         * simple answer if start data is insufficient (0 or 1 element)
          */
         if (count($substancesInput) < 2) return $this->inputInsufficientJson();
 
         /**
          * clean start data, left only visible substancesIDs
+         * simple answer if cleaned data is insufficient (0 or 1 left)
          */
         $substances = [];
         foreach ($substancesInput as $substance) {
             if (Substance::find($substance)->visible)
                 array_push($substances, (int) $substance);
         }
-        $count = count($substances);
-
-        /**
-         * simple answer if only 0 or 1 substances left
-         */
-        if ($count < 2) return $this->visibleInputInsufficientJson();
+        if (count($substances) < 2) return $this->visibleInputInsufficientJson();
 
         /**
          * get all visible drugs matching at least one substance
@@ -69,8 +64,8 @@ class SearchDrugsController extends Controller
          * give partially matched answer if exists
          */
         $partialMatches = collect([]);
-        for ($present = $count; $present >= 2 && count($partialMatches) <= $page*$this->perPage; $present--) {
-            $except = $count - $present;
+        for ($present = count($substances); $present >= 2 && count($partialMatches) <= $this->page*$this->perPage; $present--) {
+            $except = count($substances) - $present;
             $nextPart = $visibleDrugsWithOneMatchAtLeast
                 ->filter(function($drug) use ($substances, $except) {
                 return $drug->hasAllBut($substances, $except);

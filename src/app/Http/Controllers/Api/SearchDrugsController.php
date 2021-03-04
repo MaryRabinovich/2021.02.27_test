@@ -6,16 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Drug;
 use App\Models\Substance;
 use Illuminate\Http\Request;
-use App\Http\Resources\Drug\ExactMatchResource;
-use App\Http\Resources\Drug\PartialMatchResource;
+use App\Http\Resources\Api\Drug\ExactMatchResource;
+use App\Http\Resources\Api\Drug\PartialMatchResource;
 
 class SearchDrugsController extends Controller
 {
     protected $page, $perPage;
 
-    public function __construct()
+    public function __construct(Request $request)
     {
         $this->perPage = 5;
+        $this->page = isset($request->page) ? (int) $request->page : 1;
+        if ($this->page < 1 || $this->page > 10000) return $this->trollJson();
     }
 
     public function search(Request $request)
@@ -23,7 +25,6 @@ class SearchDrugsController extends Controller
         /** 
          * get start data
          */ 
-        $this->page = isset($request->page) ? (int) $request->page : 1;
         $substancesInput = isset($request->substances) ? $request->substances : [];
 
         /**
@@ -37,8 +38,10 @@ class SearchDrugsController extends Controller
          */
         $substances = [];
         foreach ($substancesInput as $substance) {
-            if (Substance::find($substance)->visible)
-                array_push($substances, (int) $substance);
+            $isIt = Substance::find($substance);
+            if ($isIt) {
+                if ($isIt->visible) array_push($substances, (int) $substance);
+            } else return $this->trollJson();
         }
         if (count($substances) < 2) return $this->visibleInputInsufficientJson();
 
@@ -64,7 +67,7 @@ class SearchDrugsController extends Controller
          * give partially matched answer if exists
          */
         $partialMatches = collect([]);
-        for ($present = count($substances); $present >= 2 && count($partialMatches) <= $this->page*$this->perPage; $present--) {
+        for ($present = count($substances); $present >= 2; $present--) {
             $except = count($substances) - $present;
             $nextPart = $visibleDrugsWithOneMatchAtLeast
                 ->filter(function($drug) use ($substances, $except) {
@@ -90,6 +93,16 @@ class SearchDrugsController extends Controller
     /**
      * formatted answers
      */
+    public function trollJson()
+    {
+        return response()->json([
+            'errors' => [
+                'substances' => [
+                    'ты зачем этим занимаешься'
+                ]
+            ]
+        ]);
+    }
     public function inputInsufficientJson()
     {
         return response()->json(

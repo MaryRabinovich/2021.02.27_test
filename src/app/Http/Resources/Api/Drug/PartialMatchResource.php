@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Resources\Drug;
+namespace App\Http\Resources\Api\Drug;
 
 use Illuminate\Http\Resources\Json\JsonResource;
-use App\Http\Resources\SubstanceResource;
+use App\Http\Resources\Api\SubstanceResource;
 
-class ExactMatchResource extends JsonResource
+class PartialMatchResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -19,6 +19,7 @@ class ExactMatchResource extends JsonResource
         return [
             'id' => $this->id,
             'substances_count' => $this->substances->count(),
+            'isset_substances' => $this->isset_substances,
             'substances' => SubstanceResource::collection($this->substances)
         ];
     }

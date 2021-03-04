@@ -138,6 +138,24 @@ class Drug3Test extends TestCase
                     ]);
                 },
                 [
+                    'page'       => 1,
+                    'substances' => [1, 2, 3, 4, 100000000]
+                ],
+                [
+                    'errors' => [
+                        'substances' => [
+                            'ты зачем этим занимаешься'
+                        ]
+                    ]
+                ]
+            ],
+            [
+                function () {
+                    Substance::find(1)->update([
+                       'visible' => false
+                    ]);
+                },
+                [
                     'page'       => 2,
                     'substances' => [1, 2, 3, 4]
                 ],
